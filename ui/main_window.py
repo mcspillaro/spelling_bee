@@ -2,16 +2,24 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QLabel, QVBoxLayout,
     QStackedWidget, QApplication
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QRect
+from PySide6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PySide6.QtGui import QFont
 from ui.typing_widget import TypingWidget
 from ui.quiz_widget import QuizWidget
 from logic.quiz_manager import QuizManager
+from logic.word_manager import WordManager
+from logic.progress_manager import ProgressManager
 from audio.tts import speak
+import random
+import config
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, conn):
         super().__init__()
+        self.conn = conn
+        db_path = "users/mikhael/progress.db"  # or get from conn
+        self.word_manager = WordManager(db_path)
+        self.progress_manager = ProgressManager(conn)
 
         self.setWindowTitle("Spelling Bee Trainer")
         self.setFixedSize(1200, 1200)
@@ -34,7 +42,88 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.typing_screen)
         self.stack.addWidget(self.quiz_screen)
 
+        self.session_words = []
+        self.current_word_index = 0
+        self.start_session()
+
+    def start_session(self):
+        count = random.randint(config.DEFAULT_SESSION_MIN, config.DEFAULT_SESSION_MAX)
+        self.session_words = self.word_manager.get_session_words(count)
+        self.current_word_index = 0
+        self.show_next_word()
+
+    def show_next_word(self):
+        if self.current_word_index >= len(self.session_words):
+            self.start_quiz()
+            return
+        
+        word = self.session_words[self.current_word_index]
+        self.current_word = word
+        
+        self.word_label.setText(word['word'].upper())
+        self.definition_label.setText(word['definition'])
+        self.definition_label.hide()
+        
         self.stack.setCurrentWidget(self.word_intro_screen)
+        
+        # Speak the word
+        speak(word['word'])
+        
+        # After 2 seconds, animate and show definition
+        QTimer.singleShot(2000, self.animate_and_show_definition)
+
+    def animate_and_show_definition(self):
+        self.animate_word_to_top()
+        speak(self.current_word['definition'])
+        
+        # After animation and speech, show typing screen
+        QTimer.singleShot(3000, self.show_typing_screen)
+
+    def show_typing_screen(self):
+        sentence = self.current_word['sentence']
+        target_word = self.current_word['word']
+        self.typing_widget = TypingWidget(sentence, target_word)
+        self.typing_widget.completed.connect(self.on_sentence_complete)
+        
+        # Replace the layout's widget
+        layout = self.typing_screen.layout()
+        if layout.count() > 0:
+            layout.itemAt(0).widget().setParent(None)
+        layout.addWidget(self.typing_widget)
+        
+        self.stack.setCurrentWidget(self.typing_screen)
+        self.typing_widget.setFocus()
+        self.typing_widget.setFocus()
+
+    def on_sentence_complete(self):
+        self.current_word_index += 1
+        self.show_next_word()
+
+    def start_quiz(self):
+        self.quiz_manager = QuizManager(self.session_words)
+        self.stack.setCurrentWidget(self.quiz_screen)
+        self.next_quiz_word()
+
+    def next_quiz_word(self):
+        if not self.quiz_manager.has_next():
+            self.end_quiz()
+            return
+        word = self.quiz_manager.next_word()
+        self.current_quiz_word = word
+
+        self.quiz_widget.set_word(word["word"])
+        speak(word["word"])
+
+    def on_quiz_answered(self, correct):
+        self.word_manager.update_progress(
+            self.current_quiz_word["id"],
+            correct
+        )
+        self.next_quiz_word()
+
+    def end_quiz(self):
+        # For now, just restart session
+        self.start_session()
 
     # ─────────────────────────────────────────────
     # SCREEN 1: WORD INTRO
@@ -61,26 +150,13 @@ class MainWindow(QMainWindow):
 
         return widget
 
-    # ─────────────────────────────────────────────
-    # SCREEN 2: TYPING PRACTICE (Placeholder)
-    # ─────────────────────────────────────────────
     def create_typing_screen(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setAlignment(Qt.AlignCenter)
-
-        sentence = "The wizard conjured a spell."
-        target_word = "spell"
-
-        self.typing_widget = TypingWidget(sentence, target_word)
-        self.typing_widget.setFixedHeight(200)
-
-        layout.addWidget(self.typing_widget)
+        # Widget will be added dynamically
         return widget
 
-    # ─────────────────────────────────────────────
-    # SCREEN 3: QUIZ (Placeholder)
-    # ─────────────────────────────────────────────
     def create_quiz_screen(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -92,31 +168,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.quiz_widget)
         return widget
 
-    def start_quiz(self, session_words): # Start quiz after the learning session
-        self.quiz_manager = QuizManager(session_words)
-        self.stack.setCurrentWidget(self.quiz_screen)
-        self.next_quiz_word()
-
-    def next_quiz_word(self): # Advance quiz
-        if not self.quiz_manager.has_next():
-            self.end_quiz()
-            return
-        word = self.quiz_manager.next_word()
-        self.current_quiz_word = word
-
-        self.quiz_widget.set_word(word["word"])
-        speak(word["word"])
-
-    def on_quiz_answered(self, correct):
-        self.progress_manager.update(
-            self.current_quiz_word["id"],
-            correct
-        )
-        self.next_quiz_word()
-
-    # ─────────────────────────────────────────────
-    # ANIMATION: MOVE WORD TO TOP
-    # ─────────────────────────────────────────────
     def animate_word_to_top(self):
         start_rect = self.word_label.geometry()
         end_rect = QRect(0, 40, 1200, 120)
@@ -128,16 +179,3 @@ class MainWindow(QMainWindow):
         self.animation.start()
 
         self.definition_label.show()
-
-self.typing_widget.completed.connect(self.on_sentence_complete)
-
-
-# ─────────────────────────────────────────────
-# RUN APP
-# ─────────────────────────────────────────────
-if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())

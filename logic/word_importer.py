@@ -9,7 +9,7 @@ def import_words(csv_path, db_path):
         reader = csv.DictReader(f)
         for row in reader:
             cursor.execute("""
-                INSERT OR IGNORE INTO words
+                INSERT OR REPLACE INTO words
                 (word, definition, origin, phonetic, sentence)
                 VALUES (?, ?, ?, ?, ?)
             """, (
