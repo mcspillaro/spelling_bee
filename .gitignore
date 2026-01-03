@@ -208,7 +208,7 @@ __marimo__/
 
 # Project-specific
 *.db
-users/
+users/**
 .DS_Store
 Thumbs.db
 .vscode/
