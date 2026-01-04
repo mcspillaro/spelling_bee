@@ -1,7 +1,0 @@
-PySide6>=6.5.0
-pyttsx3>=2.90
-
-# Optional utilities used during development
-# (uncomment if you want to use them)
-# pytest>=7.0
-# black>=24.1.0
