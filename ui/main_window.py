@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PySide6.QtGui import QFont
 from ui.typing_widget import TypingWidget
 from ui.quiz_widget import QuizWidget
+from ui.spelling_practice_widget import SpellingPracticeWidget
 from logic.quiz_manager import QuizManager
 from logic.word_manager import WordManager
 from logic.progress_manager import ProgressManager
@@ -37,10 +38,12 @@ class MainWindow(QMainWindow):
         self.word_intro_screen = self.create_word_intro_screen()
         self.typing_screen = self.create_typing_screen()
         self.quiz_screen = self.create_quiz_screen()
+        self.spelling_screen = self.create_spelling_screen()
 
         self.stack.addWidget(self.word_intro_screen)
         self.stack.addWidget(self.typing_screen)
         self.stack.addWidget(self.quiz_screen)
+        self.stack.addWidget(self.spelling_screen)
 
         self.session_words = []
         self.current_word_index = 0
@@ -96,6 +99,14 @@ class MainWindow(QMainWindow):
         self.typing_widget.setFocus()
 
     def on_sentence_complete(self):
+        self.show_spelling_screen()
+
+    def show_spelling_screen(self):
+        self.spelling_widget.set_word(self.current_word['word'])
+        speak(self.current_word['word'])
+        self.stack.setCurrentWidget(self.spelling_screen)
+
+    def on_spelling_answered(self, correct):
         self.current_word_index += 1
         self.show_next_word()
 
@@ -166,6 +177,17 @@ class MainWindow(QMainWindow):
         self.quiz_widget.answered.connect(self.on_quiz_answered)
 
         layout.addWidget(self.quiz_widget)
+        return widget
+
+    def create_spelling_screen(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setAlignment(Qt.AlignCenter)
+
+        self.spelling_widget = SpellingPracticeWidget()
+        self.spelling_widget.answered.connect(self.on_spelling_answered)
+
+        layout.addWidget(self.spelling_widget)
         return widget
 
     def animate_word_to_top(self):

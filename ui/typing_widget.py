@@ -12,6 +12,12 @@ class TypingWidget(QWidget):
         self.index = 0
         self.results = [None] * len(sentence)
 
+        # High-contrast color definitions using HEX codes
+        self.correct_color = "#00FF00"  # Bright green for text
+        self.target_bg = "#ADD8E6"      # Light blue for target word background
+        self.current_bg = "#4682B4"     # Darker blue for current position
+        self.typed_bg = "#E0FFFF"       # Lighter cyan for typed letters
+
         self.setFocusPolicy(Qt.StrongFocus)
 
         layout = QVBoxLayout(self)
@@ -34,21 +40,25 @@ class TypingWidget(QWidget):
         while i < len(self.sentence):
             char = self.sentence[i]
             if i < self.index:
-                if self.results[i] is True:
-                    text += f'<span style="color: green;">{char}</span>'
-                elif self.results[i] is False:
-                    text += f'<span style="color: red;">{char}</span>'
+                if self.results[i] is True or self.results[i] is False:
+                    if char != ' ':
+                        text += f'<span style="color: {self.correct_color}; background-color: {self.typed_bg};">{char}</span>'
+                    else:
+                        text += char
                 else:
                     text += char
             elif i == self.index:
-                text += f'<span style="background-color: yellow;">{char}</span>'
+                if char != ' ':
+                    text += f'<span style="background-color: {self.current_bg};">{char}</span>'
+                else:
+                    text += char
             else:
                 # Check if this is the start of the target word
                 if self._is_target_word_start(i):
                     word_end = self._find_word_end(i)
                     word = self.sentence[i:word_end]
                     if word.lower() == self.target_word:
-                        text += f'<span style="background-color: lightblue; font-weight: bold;">{word}</span>'
+                        text += f'<span style="background-color: {self.target_bg}; font-weight: bold;">{word}</span>'
                         i = word_end - 1
                     else:
                         text += char
@@ -56,6 +66,7 @@ class TypingWidget(QWidget):
                     text += char
             i += 1
         self.display_edit.setHtml(text)
+        self.setFocus()
 
     def _is_target_word_start(self, index):
         if index == 0 or self.sentence[index-1] in ' \n\t':

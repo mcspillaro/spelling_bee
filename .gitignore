@@ -213,3 +213,5 @@ users/**
 Thumbs.db
 .vscode/
 .idea/
+word_lists/*.csv
+!word_lists/sample_words.csv

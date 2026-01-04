@@ -8,7 +8,8 @@ import os
 
 def main():
     # Initialize database
-    user_dir = Path("users/mikhael")
+    user_dir = Path.home() / ".spelling_bee" / "users" / "mikhael"
+    user_dir.mkdir(parents=True, exist_ok=True)
     conn = init_user_db(user_dir)
     
     # Import words if not already

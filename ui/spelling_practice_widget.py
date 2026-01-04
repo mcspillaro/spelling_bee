@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 
-class QuizWidget(QWidget):
+class SpellingPracticeWidget(QWidget):
     answered = Signal(bool)
 
     def __init__(self, parent=None):
@@ -15,13 +15,13 @@ class QuizWidget(QWidget):
         layout.setAlignment(Qt.AlignCenter)
         layout.setSpacing(30)
 
-        self.prompt_label = QLabel("Spell the word")
+        self.prompt_label = QLabel("Practice spelling the word")
         self.prompt_label.setFont(QFont("Segoe UI", 36))
         self.prompt_label.setAlignment(Qt.AlignCenter)
 
-        self.hidden_label = QLabel("████████")
-        self.hidden_label.setFont(QFont("Segoe UI", 48))
-        self.hidden_label.setAlignment(Qt.AlignCenter)
+        self.word_label = QLabel("WORD")
+        self.word_label.setFont(QFont("Segoe UI", 48))
+        self.word_label.setAlignment(Qt.AlignCenter)
 
         self.input = QLineEdit()
         self.input.setFont(QFont("Segoe UI", 28))
@@ -36,14 +36,14 @@ class QuizWidget(QWidget):
         self.input.returnPressed.connect(self.check_answer)
 
         layout.addWidget(self.prompt_label)
-        layout.addWidget(self.hidden_label)
+        layout.addWidget(self.word_label)
         layout.addWidget(self.input)
 
         self.correct_word = ""
 
     def set_word(self, word: str):
         self.correct_word = word
-        self.hidden_label.setText("█" * len(word))
+        self.word_label.setText(word.upper())
         self.input.clear()
         self.input.setFocus()
 
