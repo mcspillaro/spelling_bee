@@ -67,12 +67,9 @@ class MainWindow(QMainWindow):
         # File type verification
         if not file_path.lower().endswith('.csv'):
             QMessageBox.warning(
-                self, "Invalid File", "Please select a valid CSV file.")
+                self, "Invalid Selection", "Please select a valid CSV file.")
             return
 
-        # User cancels file selection
-        if not file_path:
-            return
         # Try loading words from selected CSV
         try: 
             from core.data_loader import load_words_from_csv
