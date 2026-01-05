@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Qt
 import PySide6.QtWidgets as qtw
 from PySide6.QtWidgets import QStackedWidget
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 # Importing the config module
 import ui.config
 # Importing the screen stacks
@@ -10,6 +11,10 @@ from ui.screens.word_screen import WordScreen
 from ui.screens.typing_screen import TypingScreen
 from ui.screens.quiz_screen import QuizScreen
 from ui.screens.start_screen import StartScreen
+# Importing logical components
+from core.session_manager import SessionManager
+from core.data_loader import load_words_from_csv
+
 
 # Main window class definition
 class MainWindow(QMainWindow):
@@ -30,9 +35,15 @@ class MainWindow(QMainWindow):
         self.quiz_screen = QuizScreen()
         self.start_screen = StartScreen()
 
+        # Session manager
+        self.session = SessionManager(words_per_session=10)
+        # Load words from CSV
+        words = load_words_from_csv(ui.config.WORDS_CSV_PATH)
+        self.session.load_words(words)
+
         # Connect signals to switch screens
         self.start_screen.start_practice_requested.connect(
-            self.show_word_screen)
+            self.start_practice)
 
         # Adding screens to stack
         self.stack.addWidget(self.word_intro_screen)
@@ -42,6 +53,47 @@ class MainWindow(QMainWindow):
         
         # Start screen
         self.show_start_screen()
+
+    def start_practice(self):
+        # Open file dialog to select CSV file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Words CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        """Initiate a new practice session."""
+
+        # File type verification
+        if not file_path.lower().endswith('.csv'):
+            QMessageBox.warning(
+                self, "Invalid File", "Please select a valid CSV file.")
+            return
+
+        # User cancels file selection
+        if not file_path:
+            return
+        # Try loading words from selected CSV
+        try: 
+            from core.data_loader import load_words_from_csv
+            words =load_words_from_csv(file_path)
+
+            if not words:
+                raise ValueError("No words found in the selected CSV.")
+
+            self.session.load_words(words)
+            self.session.start_new_session()
+            self.show_word_screen()
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Failed to load words.",
+                str(e)
+            )
+
+        self.session.start_new_session()
+        self.show_word_screen()
 
     # Screen switch helpers
     def show_start_screen(self):
