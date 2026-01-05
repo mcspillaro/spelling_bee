@@ -11,6 +11,7 @@ from ui.screens.word_screen import WordScreen
 from ui.screens.typing_screen import TypingScreen
 from ui.screens.quiz_screen import QuizScreen
 from ui.screens.start_screen import StartScreen
+from ui.screens.multi_choice_screen import MultiChoiceScreen
 # Importing logical components
 from core.session_manager import SessionManager
 from core.data_loader import load_words_from_csv
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
         self.typing_screen = TypingScreen()
         self.quiz_screen = QuizScreen()
         self.start_screen = StartScreen()
+        self.multi_choice_screen = MultiChoiceScreen()
 
         # Session manager
         self.session = SessionManager(words_per_session=10)
@@ -46,13 +48,16 @@ class MainWindow(QMainWindow):
             self.start_practice)
         self.word_intro_screen.continue_requested.connect(
             self.show_typing_screen)
+        self.typing_screen.sentence_completed.connect(
+            self.show_multi_choice_screen)
 
         # Adding screens to stack
         self.stack.addWidget(self.word_intro_screen)
         self.stack.addWidget(self.typing_screen)
         self.stack.addWidget(self.quiz_screen)
         self.stack.addWidget(self.start_screen)
-        
+        self.stack.addWidget(self.multi_choice_screen)
+
         # Start screen
         self.show_start_screen()
 
@@ -102,13 +107,36 @@ class MainWindow(QMainWindow):
         word = self.session.get_current_word()
 
         if word is None:
-            return # safety guard
+            return # Safety guard
         
         self.word_intro_screen.set_word(word)
         self.stack.setCurrentWidget(self.word_intro_screen)
 
     def show_typing_screen(self):
+        word = self.session.get_current_word() # Gets the current word from CSV
+        if word is None: # Safety guard
+            return
+        
+        self.typing_screen.set_sentence(word.sentence)
+        self.stack.setCurrentWidget(self.typing_screen)
+        self.typing_screen.setFocus()
+
+        # Sets current widget to the typing_screen
         self.stack.setCurrentWidget(self.typing_screen)
 
     def show_quiz_screen(self):
         self.stack.setCurrentWidget(self.quiz_screen)
+
+    def show_multi_choice_screen(self):
+        self.stack.setCurrentWidget(self.multi_choice_screen)
+
+    # Handler for sentence completion
+    def on_sentence_completed(self):
+        self.session.show_multi_choice_screen()
+
+    def on_multi_choice_completed(self):
+        if self.session.is_session_complete():
+            self.show_quiz_screen()
+        else:
+            self.session.advance_word()
+            self.show_word_screen()
