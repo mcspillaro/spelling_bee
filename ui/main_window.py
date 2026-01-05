@@ -41,9 +41,11 @@ class MainWindow(QMainWindow):
         words = load_words_from_csv(ui.config.WORDS_CSV_PATH)
         self.session.load_words(words)
 
-        # Connect signals to switch screens
+        # Signals to switch screens
         self.start_screen.start_practice_requested.connect(
             self.start_practice)
+        self.word_intro_screen.continue_requested.connect(
+            self.show_typing_screen)
 
         # Adding screens to stack
         self.stack.addWidget(self.word_intro_screen)
@@ -97,6 +99,12 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.start_screen)
 
     def show_word_screen(self):
+        word = self.session.get_current_word()
+
+        if word is None:
+            return # safety guard
+        
+        self.word_intro_screen.set_word(word)
         self.stack.setCurrentWidget(self.word_intro_screen)
 
     def show_typing_screen(self):
