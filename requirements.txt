@@ -1,0 +1,4 @@
+PySide6>=6.5
+pyinstaller>=6.0
+# Optional for offline TTS if you plan to add pronunciation
+# pyttsx3>=2.90

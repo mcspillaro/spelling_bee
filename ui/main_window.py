@@ -52,6 +52,8 @@ class MainWindow(QMainWindow):
             self.show_multi_choice_screen)
         self.multi_choice_screen.answer_selected.connect(
             self.on_multi_choice_answer)
+        self.quiz_screen.answer_submitted.connect(
+            self.on_quiz_answer)
 
         # Adding screens to stack
         self.stack.addWidget(self.word_intro_screen)
@@ -143,12 +145,19 @@ class MainWindow(QMainWindow):
         )
         self.stack.setCurrentWidget(self.multi_choice_screen)
     
+    def show_quiz_screen(self):
+        next_word = self.session.get_current_word()
+        if not next_word:
+            return
+        self.quiz_screen.set_word(next_word.text)
+        self.stack.setCurrentWidget(self.quiz_screen)
+    
     def on_multi_choice_answer(self, is_correct):
         if is_correct:
             self.session.flag_word_learned()
         else:
             self.session.flag_word_review()
-        
+        self.session.advance_word()
         self.show_word_screen() # The next word
 
     def on_multi_choice_completed(self):
@@ -157,3 +166,17 @@ class MainWindow(QMainWindow):
         else:
             self.session.advance_word()
             self.show_word_screen()
+
+    # Handle quiz answer
+    def on_quiz_answer(self, correct):
+        if correct:
+            self.session.flag_word_learned()
+        else:
+            self.session.flag_word_review()
+
+        self.session.advance_word()
+
+        if self.session.is_session_complete():
+            self.show_start_screen()  # or a results summary
+        else:
+            self.show_quiz_screen()
