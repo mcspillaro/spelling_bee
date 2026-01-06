@@ -12,10 +12,10 @@ from ui.screens.typing_screen import TypingScreen
 from ui.screens.quiz_screen import QuizScreen
 from ui.screens.start_screen import StartScreen
 from ui.screens.multi_choice_screen import MultiChoiceScreen
-# Importing logical components
+# Importing core logical comoponents
 from core.session_manager import SessionManager
 from core.data_loader import load_words_from_csv
-
+from core.distractors import generate_distractors
 
 # Main window class definition
 class MainWindow(QMainWindow):
@@ -50,6 +50,8 @@ class MainWindow(QMainWindow):
             self.show_typing_screen)
         self.typing_screen.sentence_completed.connect(
             self.show_multi_choice_screen)
+        self.multi_choice_screen.answer_selected.connect(
+            self.on_multi_choice_answer)
 
         # Adding screens to stack
         self.stack.addWidget(self.word_intro_screen)
@@ -95,8 +97,6 @@ class MainWindow(QMainWindow):
                 "Failed to load words.",
                 str(e)
             )
-
-        self.session.start_new_session()
         self.show_word_screen()
 
     # Screen switch helpers
@@ -117,7 +117,9 @@ class MainWindow(QMainWindow):
         if word is None: # Safety guard
             return
         
-        self.typing_screen.set_sentence(word.sentence)
+        self.typing_screen.set_sentence(
+            word.sentence,
+            word.text)
         self.stack.setCurrentWidget(self.typing_screen)
         self.typing_screen.setFocus()
 
@@ -128,11 +130,26 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.quiz_screen)
 
     def show_multi_choice_screen(self):
-        self.stack.setCurrentWidget(self.multi_choice_screen)
+        current_word = self.session.get_current_word()
+        if not current_word: # Safety guard
+            return
 
-    # Handler for sentence completion
-    def on_sentence_completed(self):
-        self.session.show_multi_choice_screen()
+        # Generate the distractors
+        distractors = generate_distractors(current_word.text)
+
+        self.multi_choice_screen.set_options(
+            correct_word=current_word.text,
+            distractors=distractors
+        )
+        self.stack.setCurrentWidget(self.multi_choice_screen)
+    
+    def on_multi_choice_answer(self, is_correct):
+        if is_correct:
+            self.session.flag_word_learned()
+        else:
+            self.session.flag_word_review()
+        
+        self.show_word_screen() # The next word
 
     def on_multi_choice_completed(self):
         if self.session.is_session_complete():
