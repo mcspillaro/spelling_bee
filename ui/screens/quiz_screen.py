@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QVBoxLayout, QPushButton
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
+from core.tts_manager import TTSManager
 
 class QuizScreen(QWidget):
     # Emits True if user typed correctly, False if not
@@ -8,6 +9,7 @@ class QuizScreen(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.tts = TTSManager()
 
         self.current_word = "" # Initializes the current word that was just practiced
         self.user_input = "" # Initializes the user input
@@ -56,6 +58,9 @@ class QuizScreen(QWidget):
         self.input_field.setEnabled(True)
         self.feedback_label.setText("")
         self.input_field.setFocus()
+
+        # Speak the word aloud for the quiz
+        self.tts.speak(word)
 
     # Handle submission
     def _handle_submit(self):

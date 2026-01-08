@@ -1,6 +1,7 @@
 # Import necessary PySide6 modules
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
 from PySide6.QtCore import Qt, Signal
+from core.tts_manager import TTSManager
 
 # Creating default class for the screen
 class WordScreen(QWidget):
@@ -14,6 +15,8 @@ class WordScreen(QWidget):
         self.word_label = QLabel("")
         self.word_label.setAlignment(Qt.AlignCenter)
         self.word_label.setStyleSheet("font-size: 48px; font-weight: bold;")
+        # Generating the TTS elements
+        self.tts = TTSManager()
 
         # Generating the definition ui elements
         self.definition_label = QLabel("")
@@ -23,6 +26,7 @@ class WordScreen(QWidget):
 
         # Generating continue button ui elements
         self.continue_button = QPushButton("Continue")
+        self.continue_button.setEnabled(False) # Defaults to False first
         self.continue_button.clicked.connect(
             self.continue_requested.emit
         )
@@ -39,3 +43,14 @@ class WordScreen(QWidget):
         """Receive a word object and update the UI elements accordingly."""
         self.word_label.setText(word.text)
         self.definition_label.setText(word.definition)
+        # Redundancy for the continue button
+        self.continue_button.setEnabled(False)
+
+        # Speak the word asynchronously
+        self.tts.speak(word.text)
+
+        # Estimate duraiton of speech and enable button after
+        # Simple approach: 0.5 sec per syllable ~ 0o.2 sec per letter
+        duration_ms = max(800, len(word.text) * 200)
+
+        QTimer.singleShot(duration_ms, lambda: self.continue_button.setEnabled(True))
