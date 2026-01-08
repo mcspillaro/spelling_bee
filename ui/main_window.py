@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 import PySide6.QtWidgets as qtw
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtWidgets import QFileDialog, QMessageBox
+import random
 # Importing the config module
 import ui.config
 # Importing the screen stacks
@@ -153,12 +154,23 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.quiz_screen)
     
     def on_multi_choice_answer(self, is_correct):
-        if is_correct:
+        current_word = self.session.get_current_word()
+
+        if is_correct: # Checks if the word was correct and flags it
             self.session.flag_word_learned()
         else:
             self.session.flag_word_review()
+
+        # Add this word to recent words queue
+        self.session.add_recent_word(current_word)
+
         self.session.advance_word()
-        self.show_word_screen() # The next word
+
+        # Check if quiz should start
+        if len(self.session.recent_words) >= self.session.quiz_size:
+            self.start_quiz()
+        else:
+            self.show_word_screen()
 
     def on_multi_choice_completed(self):
         if self.session.is_session_complete():
@@ -167,16 +179,39 @@ class MainWindow(QMainWindow):
             self.session.advance_word()
             self.show_word_screen()
 
+    def start_quiz(self):
+        self.session.in_quiz_mode = True
+        self.quiz_queue = self.session.get_quiz_words()
+        self.session.clear_quiz_words()
+        
+        # Shuffle the quiz queue so words appear in random order
+        random.shuffle(self.quiz_queue)
+
+        self.show_next_quiz_word()
+
+    def show_next_quiz_word(self):
+        if not self.quiz_queue:
+            # Quiz finished
+            self.session.in_quiz_mode = False
+            self.show_word_screen()
+            return
+        
+        next_word = self.quiz_queue.pop(0) # Resets the queue for the quiz
+        self.quiz_screen.set_word(next_word.text)
+        self.stack.setCurrentWidget(self.quiz_screen)
+
     # Handle quiz answer
     def on_quiz_answer(self, correct):
+        current_word = self.session.get_current_word()
         if correct:
             self.session.flag_word_learned()
         else:
             self.session.flag_word_review()
 
-        self.session.advance_word()
-
-        if self.session.is_session_complete():
-            self.show_start_screen()  # or a results summary
+        # Continue quiz
+        if self.quiz_queue:
+            self.show_next_quiz_word()
         else:
-            self.show_quiz_screen()
+            self.session.in_quiz_mode = False
+            # Resume normal practice
+            self.show_word_screen()

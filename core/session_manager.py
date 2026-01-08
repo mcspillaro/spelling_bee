@@ -10,9 +10,11 @@ class Word:
 
 # Creating session manager to handle word sessions
 class SessionManager:
-    def __init__(self, words_per_session=10): # Defines each session as 10 words to practice
+    # quiz_size=N >>> refers to the amount of words needed to practice before showing quiz
+    def __init__(self, words_per_session=10, quiz_size=5): # Defines each session as 10 words to practice
         self.words_per_session = words_per_session
-
+        
+        self.words = [] # List to hold words that are being practiced
         self.all_words = []  # List to hold all available words
         self.session_words = []  # List to hold words for the current session
         self.current_index = 0  # Index to track the current word in the session
@@ -22,8 +24,23 @@ class SessionManager:
 
         self.practice_complete = False  # Flag to indicate if the practice session is complete
         self.quiz_mode = False  # Flag to indicate if the session is in quiz mode
+        self.quiz_size = quiz_size
+        self.recent_words = [] # Stores the last N words for mini-quiz
 
-    # Loading section
+    # Generating the list of the quiz words based on what was recently studied
+    def add_recent_word(self, word):
+        self.recent_words.append(word)
+        # Keep only the last quiz_size words
+        if len(self.recent_words) > self.quiz_size: 
+            self.recent_words.pop(0)
+
+    def get_quiz_words(self):
+        return list(self.recent_words) # Copy
+
+    def clear_quiz_words(self):
+        self.recent_words = []
+
+    # Loading the words
     def load_words(self, word_list):
         """Load words into the session manager from a provided list of Word objects."""
         self.all_words = word_list
