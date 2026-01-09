@@ -10,7 +10,7 @@ __pycache__/
 .venv/
 venv/
 ENV/
-/.python-version.txt
+spelling-bee/.python-version
 
 # ===============================
 # PySide6 / Qt
