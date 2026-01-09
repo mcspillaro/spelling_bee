@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QVBoxLayout, QPushButton
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 from core.tts_manager import TTSManager
 

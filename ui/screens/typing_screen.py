@@ -1,6 +1,6 @@
 # Import necessary PySide6 modules
 from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import QPainter, QColor, QFont
+from PySide6.QtGui import QPainter, QColor, QFont, QKeyEvent
 from PySide6.QtCore import Qt, Signal, QTimer
 
 # Creating default class for the screen
@@ -25,6 +25,12 @@ class TypingScreen(QWidget):
         self.caret_timer = QTimer(self)
         self.caret_timer.timeout.connect(self._toggle_caret)
         self.caret_timer.start(250) # Blink every 500 ms
+
+        # New: Press Enter message
+        self.show_enter_prompt = False
+
+        # Enter key enabled flag
+        self.enter_enabled = False
 
         # Setting the focus policy to accept keyboard input
         self.setFocusPolicy(Qt.StrongFocus)
@@ -84,6 +90,8 @@ class TypingScreen(QWidget):
         self.typed = ""
         self.locked = False
         self.caret_visible = True
+        self.show_enter_prompt = False
+        self.enter_enabled = False
 
         # Find target word position (first occurrence)
         start = sentence.lower().find(target_word.lower())
@@ -94,8 +102,18 @@ class TypingScreen(QWidget):
 
         self.update()
 
+        # Automatically enable "Press Enter" after sentence is fully displayed
+        duration_ms = max(500, int(len(sentence) * 300))  # Rough estimate: 0.3 sec per char
+        QTimer.singleShot(duration_ms, self._enable_enter_prompt)
+
+    # Enable Enter and show the message
+    def _enable_enter_prompt(self):
+        self.show_enter_prompt = True
+        self.enter_enabled = True
+        self.update()
+
     # Input handling
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent):
         if not self.sentence:
             return
 
@@ -110,6 +128,11 @@ class TypingScreen(QWidget):
             # Always unlock after backspace
             self.locked = False
             self.update()
+            return
+
+        # ENTER key handling
+        if key in (Qt.Key_Return, Qt.Key_Enter) and self.enter_enabled:
+            self.sentence_completed.emit()
             return
 
         # LOCKED: ignore everything else
@@ -136,8 +159,9 @@ class TypingScreen(QWidget):
 
         self.update()
 
+        # Automatically show Enter prompt if fully typed
         if self.typed == self.sentence:
-            self.sentence_completed.emit()
+            self._enable_enter_prompt()
 
     # Rendering the typing screen
     def paintEvent(self, event):
@@ -201,14 +225,10 @@ class TypingScreen(QWidget):
                     painter.setPen(QColor("#888888")) # Grey
                     painter.drawText(x, y, char)
 
-                painter.drawText(x, y, char)
                 x += char_width
 
-            if ( # Draw caret if visible
-                self.caret_visible
-                and caret_x is not None
-                and len(self.typed) < len(self.sentence)
-            ):
+            # ── Caret drawing ────────────────
+            if self.caret_visible and caret_x is not None and len(self.typed) < len(self.sentence):
                 painter.setPen(QColor("#E0E0E0"))
                 painter.drawLine(
                     caret_x,
@@ -216,3 +236,11 @@ class TypingScreen(QWidget):
                     caret_x,
                     caret_y + metrics.descent(),
                 )
+
+        # ── ENTER ARROW CUE ────────────────
+        if self.typed == self.sentence:
+            # Draw "↵" (Enter arrow) at the very end of the last line
+            arrow = "↵"
+            arrow_width = metrics.horizontalAdvance(arrow)
+            painter.setPen(QColor("#FFFFFF"))  # White arrow
+            painter.drawText(x, y, arrow)  # x, y already at end of line
