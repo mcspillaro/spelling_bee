@@ -59,3 +59,8 @@ progress.json
 # Uncomment if you DON'T want them tracked
 # ===============================
 *.csv
+
+# ===============================
+# TTS models
+# ===============================
+models/tts
