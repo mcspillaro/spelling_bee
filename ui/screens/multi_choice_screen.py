@@ -9,7 +9,7 @@ class MultiChoiceScreen(QWidget):
 
     def __init__(self):
         super().__init__()
-
+        
         self.correct_index = None
         self.buttons = []
 
@@ -22,7 +22,7 @@ class MultiChoiceScreen(QWidget):
         # Prompt label
         self.prompt_label = QLabel("Select the correctly spelled word:")
         self.prompt_label.setAlignment(Qt.AlignCenter)
-        self.prompt_label.setStyleSheet("font-size: 24px; color: #111111;")
+        self.prompt_label.setStyleSheet("font-size: 24px; color: white;")
         self.layout.addWidget(self.prompt_label)
 
         # Option buttons
