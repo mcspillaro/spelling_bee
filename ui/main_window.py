@@ -130,6 +130,21 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.typing_screen)
 
     def show_quiz_screen(self):
+        recent_words = self.session.get_recent_words()
+        if not recent_words:
+            return  # Safety
+
+        # Shuffle for randomness
+        shuffled = recent_words.copy()
+        random.shuffle(shuffled)
+
+        # Send to QuizScreen
+        self.quiz_screen.set_words(shuffled)
+
+        # Clear recent_words for the next session
+        self.session.clear_recent_words()
+
+        # Show screen
         self.stack.setCurrentWidget(self.quiz_screen)
 
     def show_multi_choice_screen(self):
@@ -181,8 +196,8 @@ class MainWindow(QMainWindow):
 
     def start_quiz(self):
         self.session.in_quiz_mode = True
-        self.quiz_queue = self.session.get_quiz_words()
-        self.session.clear_quiz_words()
+        self.quiz_queue = self.session.get_recent_words()
+        self.session.clear_recent_words()
         
         # Shuffle the quiz queue so words appear in random order
         random.shuffle(self.quiz_queue)

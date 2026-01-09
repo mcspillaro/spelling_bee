@@ -78,5 +78,4 @@ class QuizScreen(QWidget):
         self.input_field.setEnabled(False)
 
         # Emit signal after short delay
-        from PySide6.QtCore import QTimer
         QTimer.singleShot(1000, lambda: self.answer_submitted.emit(correct))

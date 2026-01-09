@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 import random
+from PySide6.QtWidgets import QWidget, QLabel, QLineEdit, QVBoxLayout, QPushButton
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QFont
+from core.tts_manager import TTSManager
 
 # Organizing word data structure into a dataclass over 'dict'
 @dataclass
@@ -7,6 +11,8 @@ class Word:
     text: str
     definition: str
     sentence: str
+    learned_tier: int = 0
+    review_tier: int = 0
 
 # Creating session manager to handle word sessions
 class SessionManager:
@@ -27,17 +33,18 @@ class SessionManager:
         self.quiz_size = quiz_size
         self.recent_words = [] # Stores the last N words for mini-quiz
 
-    # Generating the list of the quiz words based on what was recently studied
-    def add_recent_word(self, word):
+    # Track recent words for quiz
+    def add_recent_word(self, word: Word):
         self.recent_words.append(word)
         # Keep only the last quiz_size words
         if len(self.recent_words) > self.quiz_size: 
             self.recent_words.pop(0)
 
-    def get_quiz_words(self):
-        return list(self.recent_words) # Copy
+    def get_recent_words(self):
+        """Return only the words practiced in the most recent batch."""
+        return list(self.recent_words)
 
-    def clear_quiz_words(self):
+    def clear_recent_words(self):
         self.recent_words = []
 
     # Loading the words
@@ -58,6 +65,7 @@ class SessionManager:
         self.current_index = 0 # Reset index for new session
         self.practice_complete = False
         self.quiz_mode = False
+        self.recent_words = []  # Clear recent words for new session
 
     # Practice flow
     def get_current_word(self):
@@ -68,6 +76,10 @@ class SessionManager:
 
     def advance_word(self):
         """Advance to the next word in the session."""
+        word = self.get_current_word()
+        if word:
+            self.add_recent_word(word)  # Track recent words for quiz
+
         self.current_index += 1
 
         if self.current_index >= len(self.session_words):
@@ -95,8 +107,3 @@ class SessionManager:
 
         word.review_tier = min(getattr(word, "review_tier", 0) + 1, 3)
         word.learned_tier = max(getattr(word, "learned_tier", 0) - 1, 0)
-    
-    # Quiz flow
-    def get_quiz_words(self):
-        "Return the list of words that was just practiced in the session quiz."
-        return list(self.session_words)
