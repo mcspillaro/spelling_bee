@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 venv/
 ENV/
+/.python-version.txt
 
 # ===============================
 # PySide6 / Qt
