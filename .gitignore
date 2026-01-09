@@ -63,4 +63,4 @@ progress.json
 # ===============================
 # TTS models
 # ===============================
-models/tts
+models/tts/
